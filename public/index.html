@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Fila TikTok</title>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial;
+}
+
+body{
+    background:#0f0f0f;
+    color:white;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:30px;
+    color:#00ff88;
+}
+
+.status{
+    text-align:center;
+    margin-bottom:20px;
+    color:#aaa;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:
+    repeat(auto-fit,minmax(280px,1fr));
+
+    gap:20px;
+}
+
+.card{
+    background:#1b1b1b;
+    border-radius:20px;
+    padding:20px;
+    border:1px solid #2a2a2a;
+}
+
+.top{
+    font-size:22px;
+    color:#00ff88;
+    margin-bottom:10px;
+}
+
+.nome{
+    font-size:20px;
+    font-weight:bold;
+}
+
+.numero{
+    margin-top:10px;
+    color:#aaa;
+}
+
+.moedas{
+    margin-top:15px;
+    font-size:18px;
+    color:gold;
+}
+
+button{
+
+    width:100%;
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    margin-top:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.copy{
+    background:#00ff88;
+    color:black;
+}
+
+.remove{
+    background:#ff4444;
+    color:white;
+}
+
+</style>
+
+</head>
+<body>
+
+<h1>FILA TIKTOK LIVE</h1>
+
+<div class="status"
+id="status">
+
+Aguardando live...
+
+</div>
+
+<div class="grid"
+id="fila"></div>
+
+<script>
+
+const filaDiv =
+document.getElementById('fila');
+
+const statusDiv =
+document.getElementById('status');
+
+const socket = io();
+
+// FORMATAR
+
+function formatarNumero(numero){
+
+    return numero
+    .match(/.{1,3}/g)
+    .join(' ');
+}
+
+// COPIAR
+
+async function copiar(nome, numero){
+
+    const formatado =
+        formatarNumero(numero);
+
+    const texto =
+        `${nome} - ${formatado}`;
+
+    await navigator.clipboard
+    .writeText(texto);
+
+    alert('Copiado!');
+}
+
+// REMOVER
+
+async function remover(uniqueId){
+
+    await fetch(
+        `/api/remover/${uniqueId}`,
+        {
+            method:'DELETE'
+        }
+    );
+}
+
+// RENDER
+
+function renderizar(lista){
+
+    filaDiv.innerHTML = '';
+
+    lista.sort((a,b)=>
+        b.pontos-a.pontos
+    );
+
+    statusDiv.innerHTML =
+        `${lista.length} participantes`;
+
+    lista.forEach((user,index)=>{
+
+        filaDiv.innerHTML += `
+
+        <div class="card">
+
+            <div class="top">
+                TOP ${index+1}
+            </div>
+
+            <div class="nome">
+                ${user.nickname}
+            </div>
+
+            <div class="numero">
+                ${formatarNumero(user.numero)}
+            </div>
+
+            <div class="moedas">
+                🪙 ${user.pontos}
+            </div>
+
+            <button
+            class="copy"
+            onclick="copiar(
+                '${user.nickname}',
+                '${user.numero}'
+            )">
+
+            COPIAR
+
+            </button>
+
+            <button
+            class="remove"
+            onclick="remover(
+                '${user.uniqueId}'
+            )">
+
+            REMOVER
+
+            </button>
+
+        </div>
+        `;
+    });
+}
+
+// API
+
+fetch('/api/fila')
+.then(r=>r.json())
+.then(renderizar);
+
+// SOCKET
+
+socket.on('fila', renderizar);
+
+</script>
+
+</body>
+</html>
